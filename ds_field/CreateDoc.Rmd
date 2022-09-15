@@ -1,0 +1,60 @@
+---
+title: "CreateDoc"
+author: "W. Hough"
+date: "2022-09-11"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+* Item1
+  + item1a
+* Item2
+
+
+1. Item1
+2. Item2
+
+*italic words*
+
+**bold words**
+
+## Header 1
+### Header2
+
+R code
+
+```{r, include=TRUE, echo=FALSE} 
+test = 7
+print(test)
+```
+
+R code end
+
+Table code
+
+```{r cars, include=TRUE, echo=FALSE}
+summary(cars)
+```
+
+Table code end
+
+Plot code
+
+```{r pressure}
+plot(pressure)
+```
+
+Plot code end
+
+Session info
+
+```{r}
+sessionInfo()
+```
+
+Session info end

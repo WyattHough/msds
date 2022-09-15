@@ -1,0 +1,48 @@
+---
+title: "NYPD Project"
+author: "W. Hough"
+date: "2022-09-11"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Import and Inspect Data
+
+Import required packages
+```{r, message=FALSE}
+library("tidyverse")
+library("lubridate")
+```
+
+
+The NYPD Shooting Incident Data (Historic) data set is imported from this site: https://catalog.data.gov/dataset
+
+```{r, message=FALSE}
+na_strings <- c("UNKNOWN", "U", "", "1020", "940", "224")
+nypd_data <- read_csv("https://data.cityofnewyork.us/api/views/833y-fsy8/rows.csv?accessType=DOWNLOAD", na = na_strings)
+summary(nypd_data)
+```
+
+Clean and tidy data
+```{r}
+nypd_data <- nypd_data %>% 
+  select(-c(PRECINCT, JURISDICTION_CODE, X_COORD_CD, Y_COORD_CD, Latitude, Longitude, Lon_Lat)) %>%
+  mutate(OCCUR_DATE = mdy(OCCUR_DATE))
+```
+
+
+```{r}
+
+```
+
+
+
+Summarize Data
+```{r}
+nypd_data
+```
+
+
