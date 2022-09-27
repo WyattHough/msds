@@ -377,7 +377,8 @@ pre code {
 library(&quot;lubridate&quot;)</code></pre>
 <p>The NYPD Shooting Incident Data (Historic) data set is imported from
 this site: <a href="https://catalog.data.gov/dataset" class="uri">https://catalog.data.gov/dataset</a></p>
-<pre class="r"><code>nypd_data &lt;- read_csv(&quot;https://data.cityofnewyork.us/api/views/833y-fsy8/rows.csv?accessType=DOWNLOAD&quot;)
+<pre class="r"><code>na_strings &lt;- c(&quot;UNKNOWN&quot;, &quot;U&quot;, &quot;&quot;, &quot;1020&quot;, &quot;940&quot;, &quot;224&quot;)
+nypd_data &lt;- read_csv(&quot;https://data.cityofnewyork.us/api/views/833y-fsy8/rows.csv?accessType=DOWNLOAD&quot;, na = na_strings)
 summary(nypd_data)</code></pre>
 <pre><code>##   INCIDENT_KEY        OCCUR_DATE         OCCUR_TIME           BORO          
 ##  Min.   :  9953245   Length:25596       Length:25596      Length:25596      
