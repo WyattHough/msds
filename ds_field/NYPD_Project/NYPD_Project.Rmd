@@ -62,7 +62,6 @@ The first visualization will display the total murders per region. The data set 
 ```{r}
 shooting_by_region <- nypd_data_adjusted %>%
   group_by(BORO) %>%
-  summarize(murder_case = sum(STATISTICAL_MURDER_FLAG), murder_per_case = sum()) %>%
   ungroup()
 ```
 
