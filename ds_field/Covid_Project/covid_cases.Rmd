@@ -54,7 +54,7 @@ global_deaths <- global_deaths %>%
   pivot_longer(cols = -c('Province/State',
                          'Country/Region',
                          Lat, Long),
-               # names_to = "date",
+               names_to = "date",
                values_to = "deaths") %>%
   select(-c(Lat, Long))
 
