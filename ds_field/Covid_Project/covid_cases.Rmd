@@ -1,7 +1,6 @@
 ---
-title: "Covid_Cases"
-author: "W. Hough"
-date: "2022-09-26"
+title: "Covid Cases"
+date: "2022-10-10"
 output:
   html_document: default
   pdf_document: default
@@ -11,18 +10,17 @@ output:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+## Import Data and Packages
 
-## Import and Inspect Data
-
-Import required packages
+First import the required packages.
 ```{r, message=FALSE}
 library("tidyverse")
 library("lubridate")
 ```
 
-
-The Covid 19 data is imported from this site:
-
+The COVID19 data is imported from the Johns Hopkins github site: https://github.com/CSSEGISandData/COVID-19/tree/master/csse_covid_19_data
+This data contains information about the number of confirmed cases and the number of deaths from the Covid-19 virus.
+We will clean and tidy the data and use it to inspect the data from different countries and regions to track the changes over time. The question we will try to answer is which US state or states have the highest death to cases ratio and why that may be.
 
 ```{r, message=FALSE}
 url <- 'https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/'
@@ -39,33 +37,8 @@ US_cases <- read_csv(urls[3])
 US_deaths <- read_csv(urls[4])
 ```
 
-
-
+First we combine the US cases and deaths into a single dataframe.
 ```{r, echo=TRUE}
-global_cases <- global_cases %>%
-  pivot_longer(cols = -c('Province/State',
-                         'Country/Region',
-                         Lat, Long),
-               names_to = "date",
-               values_to = "cases") %>%
-  select(-c(Lat, Long))
-
-global_deaths <- global_deaths %>%
-  pivot_longer(cols = -c('Province/State',
-                         'Country/Region',
-                         Lat, Long),
-               names_to = "date",
-               values_to = "deaths") %>%
-  select(-c(Lat, Long))
-
-global <- global_cases %>%
-  full_join(global_deaths) %>%
-  rename(Country_Region = 'Country/Region',
-         Province_State = 'Province/State',) %>%
-  mutate(date = mdy(date))
-```
-
-```{r}
 US_cases <- US_cases %>% 
   pivot_longer(cols = -(UID:Combined_Key),
                names_to = "date",
@@ -86,28 +59,157 @@ US <- US_cases %>%
     full_join(US_deaths)
 ```
 
+Next we will break up the US dataset, group all the rows for each state, and add a new field to track the deaths per case ratio.
 ```{r}
-global <- global %>%
-   unite("Combined_Key",
-         c(Province_State, Country_Region),
-         sep = " ,",
-         na.rm = TRUE,
-         remove = FALSE)
+US_by_state <- US %>%
+  group_by(Province_State, Country_Region, date) %>%
+  summarize(cases = sum(cases), deaths = sum(deaths),
+            Population = sum(Population)) %>%
+  mutate(deaths_per_case = deaths / cases) %>%
+  select(Province_State, Country_Region, date, 
+         cases, deaths, deaths_per_case, Population) %>%
+  ungroup()
+```
 
-uid_lookup_path <- 'https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/'
-uid_filename <- 'UID_ISO_FIPS_LookUpT_Table.csv'
+Finally we combine it again to create a single dataframe for the whole US.
+```{r}
+US_totals <- US_by_state %>%
+  group_by(Country_Region, date) %>%
+  summarize(cases = sum(cases), deaths = sum(deaths),
+            Population = sum(Population)) %>%
+  mutate(deaths_per_case = deaths / cases) %>%
+  select(Country_Region, date, 
+         cases, deaths, deaths_per_case, Population) %>%
+  ungroup()
+```
+
+## Visualize Data
+
+First we will visualize the total cases and total deaths to make sure our data is not corrupt.
+```{r}
+US_totals %>%
+  filter(cases > 0) %>%
+  ggplot(aes(x = date, y = cases)) +
+  geom_line(aes(color = "cases")) +
+  geom_point(aes(color = "cases")) +
+  geom_line(aes(y = deaths, color = "deaths")) +
+  geom_point(aes(y = deaths, color = "deaths")) +
+  scale_y_log10() +
+  theme(legend.position = "bottom",
+        axis.text.x = element_text(angle = 90)) +
+  labs(title = "COVID19 in US", y = NULL)
+```
+
+
+We see that the deaths is tracking the cases as we would expect. Now lets visualize the ratio of deaths per case in the US.
+
+```{r}
+US_totals %>%
+  filter(cases > 0) %>%
+  ggplot(aes(x = date, y = deaths_per_case)) +
+  geom_line(aes(color = "deaths_per_case")) +
+  geom_point(aes(color = "deaths_per_case")) +
+  scale_y_log10() +
+  theme(legend.position = "bottom",
+        axis.text.x = element_text(angle = 90)) +
+  labs(title = "COVID19 deaths per case in US", y = NULL)
+```
+
+
+We note here that while the deaths per case started at 1 to 1 in the very beginning, it quickly dropped off to below 0.1 deaths per case and has been decreasing ever since.
+
+## Analyze Data
+
+Now, to inspect the deaths per case for each state, we will print a summary of the top five states before taking a closer look.
+
+```{r}
+US_by_state_totals <- US_by_state %>%
+  filter(cases > 0) %>%
+  group_by(Province_State) %>%
+  summarize(cases = sum(cases), deaths = sum(deaths)) %>%
+  mutate(deaths_per_case_totals = deaths / cases) %>%
+  select(Province_State, cases, deaths, deaths_per_case_totals) %>%
+  arrange(deaths_per_case_totals) %>%
+  ungroup()
+
+tail(US_by_state_totals)
+```
+
+From this table we see that out of the 50 US states, New Jersey, Connecticut, and New York have the highest death per case ratios over the entire sampling period. We can plot each of their graphs to view the rate changes over time.
+
+```{r}
+state <- "New Jersey"
+US_by_state %>%
+  filter(Province_State == state) %>%
+  ggplot(aes(x = date, y = deaths_per_case)) +
+  geom_line(aes(color = "deaths_per_case")) +
+  geom_point(aes(color = "deaths_per_case")) +
+  theme(legend.position = "bottom",
+        axis.text.x = element_text(angle = 90)) +
+  labs(title = str_c("COVID19 Death Rate in ", state), y = NULL)
+
+state <- "Connecticut"
+US_by_state %>%
+  filter(Province_State == state) %>%
+  ggplot(aes(x = date, y = deaths_per_case)) +
+  geom_line(aes(color = "deaths_per_case")) +
+  geom_point(aes(color = "deaths_per_case")) +
+  theme(legend.position = "bottom",
+        axis.text.x = element_text(angle = 90)) +
+  labs(title = str_c("COVID19 Death Rate in ", state), y = NULL)
+
+state <- "New York"
+US_by_state %>%
+  filter(Province_State == state) %>%
+  ggplot(aes(x = date, y = deaths_per_case)) +
+  geom_line(aes(color = "deaths_per_case")) +
+  geom_point(aes(color = "deaths_per_case")) +
+  theme(legend.position = "bottom",
+        axis.text.x = element_text(angle = 90)) +
+  labs(title = str_c("COVID19 Death Rate in ", state), y = NULL)
 
 ```
 
-```{r}
-uid_filename <- 'UID_ISO_FIPS_LookUp_Table.csv'
-uid <- read_csv(uid_filename) %>%
-    select(-c(Lat, Long_, Combined_Key, code3, iso2, iso3, Admin2))
 
-global <- global %>%
-   left_join(uid, by = c("Province_State", "Country_Region")) %>%
-   select(-c(UID, FIPS)) %>%
-   select(Province_State, Country_Region, date,
-          cases, deaths, Population, Combined_Key)
+These charts all show a significant drop off over the entire period but they also show a large hump occuring shortly after the outbreak started in early 2020. By contrast, lets look at a graph from the state with the lowest deaths per case and compare them. We find the lowest state by sorting the state totals dataframe.
+
+```{r}
+US_by_state_totals %>% arrange(deaths_per_case_totals)
+
+state <- "Alaska"
+US_by_state %>%
+  filter(Province_State == state) %>%
+  ggplot(aes(x = date, y = deaths_per_case)) +
+  geom_line(aes(color = "deaths_per_case")) +
+  geom_point(aes(color = "deaths_per_case")) +
+  theme(legend.position = "bottom",
+        axis.text.x = element_text(angle = 90)) +
+  labs(title = str_c("COVID19 Death Rate in ", state), y = NULL)
 ```
 
+Since Alaska has the lowest death per case ratio, we graph it and see that it has a much shorter recovery time. There is still a spike in the beginning but instead of looking like a hump, it comes down much more quickly.
+
+## Modeling
+
+In order to model this data, we will try to make a correlation between the total number of cases and the death ratio. The theory is that the more cases there are, the greater the death ratio will be. First we create the model.
+
+```{r}
+mod <- lm(cases ~ deaths_per_case_totals, data = US_by_state_totals)
+summary(mod)
+
+US_tot_w_pred <- US_by_state_totals %>% mutate(pred = predict(mod))
+US_tot_w_pred
+```
+
+The next step is to graph this model in red alongside the actual data in blue to see how well it does.
+```{r}
+US_tot_w_pred %>% ggplot() +
+  geom_point(aes(x = deaths_per_case_totals, y = cases), color = "blue") +
+  geom_point(aes(x = deaths_per_case_totals, y = pred), color = "red")
+```
+
+The model is not a perfect match on the data but it does seem to capture the general upward trend. From this we can conclude that the total number of cases does have some impact in the death ratio. Generally, the more cases there are, the greater the chance of death to occur. There are a few outliers that can be seen and if we analyze the data further, we could determine if these should be ignored, altered or left as is. 
+
+## Conclusion
+
+In conclusion, we determined that New Jersey, Connecticut, and New York were the three states with the highest death per case ratio. We were also abe to find a direct corelation in that the higher the cases are, the greater chance there is that the ratio is higher as well. With further analysis, we might be able to determine if population itself or maybe population density are contributing factors. Some possible sources of bias in the data would be in how each state records cases and deaths. Perhaps they are recorded differently and this should be noted before any definitive statements can be made. Another source of bias could be present in my own analysis that highlights the three states as having the worst Covid19 death rates. There could be other ways to determine if states are properly reacting to Covid outbreaks instead of just looking at death rates. To continue this work, I would look for population density data to include and perform the analyses on individual cities or counties as well.
