@@ -1,6 +1,7 @@
 # Bad Drivers
 
 This folder contains data behind the story [Dear Mona, Which State Has The Worst Drivers?](http://fivethirtyeight.com/datalab/which-state-has-the-worst-drivers/)
+data can be found at https://github.com/fivethirtyeight/data/tree/master/bad-drivers
 
 Variable | Source
 ---|---------
