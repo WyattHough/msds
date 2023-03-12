@@ -200,4 +200,4 @@ cython_debug/
 #.idea/
 
 # Large data objects
-.pkl
+*.pkl
