@@ -3,10 +3,11 @@ channels:
   - defaults
 dependencies:
   - python
-  - jupyter
+  - pandas
+  - scikit-learn-intelex
   - matplotlib
   - scipy
-  - pandas
   - scikit-learn
-  - scikit-learn-intelex
+  - jupyter
+  - seaborn
 prefix: /home/wyatt/miniconda3/envs/msds
