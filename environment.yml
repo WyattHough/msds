@@ -10,4 +10,5 @@ dependencies:
   - scikit-learn
   - jupyter
   - seaborn
+  - pytest
 prefix: /home/wyatt/miniconda3/envs/msds
