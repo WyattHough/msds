@@ -201,5 +201,5 @@ cython_debug/
 
 # Large data objects
 *.pkl
-*.csv
+#s*.csv
 data/
